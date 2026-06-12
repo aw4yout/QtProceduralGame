@@ -14,6 +14,9 @@ void TerrainGeometry::updateData(const gen::Mesh& mesh)
 {
     clear();
 
+    m_vertexCount = mesh.getVertices().size();
+    emit vertexCountChanged();
+
     constexpr auto stride = sizeof(gen::Mesh::Vertex);
 
     const QByteArray vertexData(

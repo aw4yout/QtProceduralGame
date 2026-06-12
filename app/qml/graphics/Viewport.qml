@@ -1,8 +1,19 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
+import QtQuick3D.Physics
 
 View3D {
+    id: view3d
+
+    PhysicsWorld {
+        id: physicsWorld
+
+        gravity: Qt.vector3d(0, -982, 0)
+        scene: view3d.scene
+        running: false
+    }
+
     camera: perspectiveCamera
     environment: ExtendedSceneEnvironment {
         backgroundMode: SceneEnvironment.SkyBox
@@ -18,6 +29,8 @@ View3D {
 
     Node {
         id: cameraNode
+
+        position: Qt.vector3d(1000, 1000, 1200)
 
         PerspectiveCamera {
             id: perspectiveCamera
@@ -44,39 +57,42 @@ View3D {
         shadowFactor: 90
     }
 
-    Model {
-        source: "#Cube"
-        position: Qt.vector3d(0, 0, -200)
-        materials: [ PrincipledMaterial {
-            baseColor: "red"
-        } ]
-    }
-
-    Repeater3D {
-        model: chunks
-        delegate: Model {
-            required property var modelData
-
-            geometry: modelData
-            scale: Qt.vector3d(50, 50, 50)
+    DynamicRigidBody {
+        collisionShapes: BoxShape{}
+        position: Qt.vector3d(1000, 1200, 1000)
+        Model {
+            source: "#Cube"
             materials: [ PrincipledMaterial {
-                baseColor: "green"
-                roughness: 0.8
-                metalness: 0.0
-                //cullMode: Material.NoCulling
+                baseColor: "red"
             } ]
         }
     }
 
-    // Model {
-    //     geometry: terrainGeometry
-    //     position: Qt.vector3d(0, -500, -400)
-    //     scale: Qt.vector3d(20, 20, 20)
-    //     materials: [ PrincipledMaterial {
-    //         baseColor: "green"
-    //         roughness: 0.8
-    //         metalness: 0.0
-    //         cullMode: Material.NoCulling
-    //     } ]
-    // }
+    Repeater3D {
+        model: chunks
+        delegate: StaticRigidBody {
+            id: body
+
+            required property var modelData
+            required property int index
+
+            scale: Qt.vector3d(50, 50, 50)
+            collisionShapes: TriangleMeshShape {
+                geometry: (body.modelData && body.modelData.vertexCount > 0) ? body.modelData : null
+            }
+
+            Model {
+                id: model
+
+                geometry: body.modelData
+                materials: [ PrincipledMaterial {
+                    baseColor: "green"
+                    roughness: 0.8
+                    metalness: 0.0
+                } ]
+            }
+        }
+
+        Component.onCompleted: physicsWorld.running = true
+    }
 }
