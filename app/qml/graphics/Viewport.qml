@@ -33,4 +33,15 @@ View3D {
             baseColor: "red"
         } ]
     }
+
+    Model {
+        geometry: terrainGeometry
+        position: Qt.vector3d(0, 0, -400)
+        materials: [ PrincipledMaterial {
+            baseColor: "green"
+            roughness: 1.0
+            metalness: 0.0
+            cullMode: Material.NoCulling
+        } ]
+    }
 }
