@@ -1,8 +1,9 @@
 #pragma once
 
-#include <array>
-
 #include "utils/Vector.hpp"
+
+#include <array>
+#include <functional>
 
 namespace gen {
 
@@ -16,10 +17,10 @@ class Chunk
 public:
     using ValueType = float;
     using Vector3Type = utils::Vector3i;
+    using ContinuousDensityFuncType = std::function<ValueType(utils::Vector3<ValueType>)>;
 
     static constexpr int size = 32;
     static constexpr int voxelsCount = size * size * size;
-    static constexpr int cellsCount = (size - 1) * (size - 1) * (size - 1);
 
 public:
     explicit Chunk(Vector3Type position);
@@ -36,7 +37,10 @@ public:
     Voxel& getVoxel(Vector3Type position);
     const Voxel& getVoxel(Vector3Type position) const;
 
-    ValueType getDensityOrDefault(Vector3Type position, ValueType value = -1.0f) const;
+    ValueType getDensityOrDefault(Vector3Type position, ValueType value = 0.0f) const;
+    ValueType getDensityOrDefault(
+        Vector3Type localPos, Vector3Type worldPos,
+        const ContinuousDensityFuncType& getContinuousDensity) const;
 
 private:
     static constexpr bool isValid(Vector3Type position);

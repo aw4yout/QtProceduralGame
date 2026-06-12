@@ -1,4 +1,5 @@
 #include "world/TerrainGenerator.hpp"
+#include "utils/Math.hpp"
 
 namespace gen {
 
@@ -43,22 +44,17 @@ TerrainGenerator::ValueType TerrainGenerator::getCaveDensity(const Vector3Type p
         point.z * m_config.caveFrequency,
         m_config.octaves, m_config.persistence);
 
-    if (noise > m_config.caveThreshold) {
-        const auto depth = (noise - m_config.caveThreshold) * 2.0f;
-        return -depth;
-    }
-
-    return 1.0f;
+    return std::clamp((m_config.caveThreshold - noise) * 2.0f, -1.0f, 1.0f);
 }
 
 TerrainGenerator::ValueType TerrainGenerator::getDensity(const Vector3Type point) const
 {
-    const auto surfaceHeight = getHeight({ point.x, point.y });
+    const auto surfaceHeight = getHeight({ point.x, point.z });
     const auto baseDensity = surfaceHeight - point.y;
 
     const auto caveDensity = getCaveDensity(point);
 
-    return std::min(baseDensity, caveDensity);
+    return utils::smoothMin(baseDensity, caveDensity, m_config.caveSmoothness);
 }
 
 Chunk TerrainGenerator::generate(const Chunk::Vector3Type position) const
@@ -68,14 +64,9 @@ Chunk TerrainGenerator::generate(const Chunk::Vector3Type position) const
     for (int z = 0; z < Chunk::size; ++z) {
         for (int y = 0; y < Chunk::size; ++y) {
             for (int x = 0; x < Chunk::size; ++x) {
-                const Vector3Type worldPos{
-                    static_cast<ValueType>(position.x * Chunk::size + x) * m_config.voxelSize,
-                    static_cast<ValueType>(position.y * Chunk::size + y) * m_config.voxelSize,
-                    static_cast<ValueType>(position.z * Chunk::size + z) * m_config.voxelSize,
-                };
-
+                const auto worldPos = position * Chunk::size + utils::Vector3{ x, y, z };
                 auto& [density] = chunk.getVoxel({ x, y, z });
-                density = getDensity(worldPos);
+                density = getDensity(worldPos.as<ValueType>());
             }
         }
     }

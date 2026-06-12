@@ -22,7 +22,7 @@ void TerrainGeometry::updateData(const gen::Mesh& mesh)
 
     const QByteArray indexData(
         reinterpret_cast<const char*>(mesh.getIndices().data()),
-        static_cast<qsizetype>(mesh.getVertices().size() * sizeof(uint32_t)));
+        static_cast<qsizetype>(mesh.getIndices().size() * sizeof(uint32_t)));
 
     setVertexData(vertexData);
     setIndexData(indexData);
@@ -31,7 +31,7 @@ void TerrainGeometry::updateData(const gen::Mesh& mesh)
     setPrimitiveType(PrimitiveType::Triangles);
 
     addAttribute(Attribute::PositionSemantic, 0, Attribute::F32Type);
-    addAttribute(Attribute::NormalSemantic, 3 * sizeof(gen::Mesh::ValueType), Attribute::F32Type);
+    addAttribute(Attribute::NormalSemantic, sizeof(gen::Mesh::Vector3Type), Attribute::F32Type);
     addAttribute(Attribute::IndexSemantic, 0, Attribute::U32Type);
 
     float minX = std::numeric_limits<float>::max();

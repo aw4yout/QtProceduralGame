@@ -11,17 +11,21 @@ class MarchingCubes
 {
 public:
     using ValueType = Chunk::ValueType;
-    using DensityFuncType = std::function<ValueType(Chunk::Vector3Type worldPos)>;
+    using DensityFuncType = std::function<ValueType(Chunk::Vector3Type)>;
+    using ContinuousDensityFuncType = std::function<ValueType(Mesh::Vector3Type)>;
 
-    static Mesh generateChunk(const Chunk& chunk, ValueType isoLevel = {});
+    static Mesh generateChunk(
+        const Chunk& chunk,
+        const ContinuousDensityFuncType& getContinuousDensity,
+        ValueType isoLevel = {});
 
 private:
     static ValueType getOffset(
         ValueType x, ValueType y, ValueType isoLevel);
 
     static Mesh::Vector3Type computeNormal(
-        Chunk::Vector3Type worldPos, Mesh::Vector3Type vertexPos,
-        const DensityFuncType& getDensity);
+        Mesh::Vector3Type vertexPos,
+        const ContinuousDensityFuncType& getContinuousDensity);
 };
 
 } // gen

@@ -19,17 +19,16 @@ public:
     {
         std::optional<PerlinNoise::SeedType> seed = std::nullopt;
 
-        ValueType baseHeight = 32.0f;
-        ValueType heightScale = 64.0f;
+        ValueType baseHeight = 0.0f;
+        ValueType heightScale = 30.0f;
 
         int32_t octaves = 4;
-        ValueType persistence = 0.5f;
-        ValueType frequency = 0.5f;
+        ValueType persistence = 0.4f;
+        ValueType frequency = 0.01f;
 
         ValueType caveFrequency = 0.03f;
-        ValueType caveThreshold = 0.65f;
-
-        ValueType voxelSize = 1.0f;
+        ValueType caveThreshold = 0.8f;
+        ValueType caveSmoothness = 0.3f;
     };
 
     explicit TerrainGenerator(const Config& config);
