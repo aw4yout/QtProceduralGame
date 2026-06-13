@@ -20,15 +20,20 @@ public:
         std::optional<PerlinNoise::SeedType> seed = std::nullopt;
 
         ValueType baseHeight = 0.0f;
-        ValueType heightScale = 30.0f;
+        ValueType heightScale = 32.0f;
 
-        int32_t octaves = 4;
+        int32_t octaves = 12;
         ValueType persistence = 0.4f;
         ValueType frequency = 0.01f;
 
         ValueType caveFrequency = 0.03f;
-        ValueType caveThreshold = 0.8f;
-        ValueType caveSmoothness = 0.3f;
+        ValueType caveThreshold = 0.7f;
+        ValueType caveSmoothness = 0.8f;
+
+        ValueType snowLine = 40.0f;
+        ValueType sandDepth = 3.0f;
+        ValueType grassDepth = 3.0f;
+        ValueType dirtDepth = 6.0f;
     };
 
     explicit TerrainGenerator(const Config& config);
@@ -36,6 +41,8 @@ public:
     ValueType getHeight(Vector2Type point) const;
     ValueType getCaveDensity(Vector3Type point) const;
     ValueType getDensity(Vector3Type point) const;
+    Voxel getVoxel(Vector3Type point) const;
+    Voxel::Material getMaterial(Vector3Type point, ValueType surfaceHeight, ValueType baseDensity, ValueType density) const;
 
     Chunk generate(Chunk::Vector3Type position) const;
 
@@ -45,6 +52,7 @@ private:
     PerlinNoise::SeedType m_computedSeed;
 
     PerlinNoise m_heightNoise, m_detailNoise, m_caveNoise;
+    PerlinNoise m_temperatureNoise, m_mountainsNoise;
 };
 
 } // gen

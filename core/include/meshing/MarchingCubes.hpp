@@ -12,11 +12,11 @@ class MarchingCubes
 public:
     using ValueType = Chunk::ValueType;
     using DensityFuncType = std::function<ValueType(Chunk::Vector3Type)>;
-    using ContinuousDensityFuncType = std::function<ValueType(Mesh::Vector3Type)>;
+    using ContinuousDensityFuncType = std::function<Voxel(Mesh::Vector3Type)>;
 
     static Mesh generateChunk(
         const Chunk& chunk,
-        const ContinuousDensityFuncType& getContinuousDensity,
+        const ContinuousDensityFuncType& getContinuousVoxel,
         ValueType isoLevel = {});
 
 private:
@@ -25,7 +25,7 @@ private:
 
     static Mesh::Vector3Type computeNormal(
         Mesh::Vector3Type vertexPos,
-        const ContinuousDensityFuncType& getContinuousDensity);
+        const ContinuousDensityFuncType& getContinuousVoxel);
 };
 
 } // gen

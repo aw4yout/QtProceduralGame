@@ -16,6 +16,7 @@ public:
     struct Vertex
     {
         Vector3Type position, normal;
+        Vector3Type materialProperties; // primaryMat, secondaryMat, blendWeight
     };
 
     void addTriangle(const std::array<Vertex, 3>& triangle);

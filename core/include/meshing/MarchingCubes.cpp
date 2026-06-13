@@ -2,6 +2,7 @@
 
 #include <array>
 #include <ranges>
+#include <print>
 
 namespace gen {
 
@@ -287,10 +288,10 @@ inline constexpr std::array<std::array<int32_t, 16>, 256> triangleConnection =
     {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }
 }};
 
-inline constexpr std::array<Chunk::Vector3Type, 8> vertexOffset =
+inline constexpr std::array<Mesh::Vector3Type, 8> vertexOffset =
 {{
-    { 0, 0, 0 },{ 1, 0, 0 },{ 1, 1, 0 },{ 0, 1, 0 },
-    { 0, 0, 1 },{ 1, 0, 1 },{ 1, 1, 1 },{ 0, 1, 1 }
+    { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },
+    { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f, 1.0f }
 }};
 
 inline constexpr std::array<utils::Vector2i, 12> edgeConnection =
@@ -302,24 +303,24 @@ inline constexpr std::array<utils::Vector2i, 12> edgeConnection =
 
 inline constexpr std::array<Mesh::Vector3Type, 12> edgeDirection =
 {{
-    { 1.0f, 0.0f, 0.0f },{ 0.0f, 1.0f, 0.0f },{ -1.0f, 0.0f, 0.0f },{ 0.0f, -1.0f, 0.0f },
-    { 1.0f, 0.0f, 0.0f },{ 0.0f, 1.0f, 0.0f },{ -1.0f, 0.0f, 0.0f },{ 0.0f, -1.0f, 0.0f },
-    { 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f, 1.0f },{ 0.0f,  0.0f, 1.0f }
+    { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f },
+    { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f },
+    { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f,  0.0f, 1.0f }
 }};
 
 }
 
 Mesh MarchingCubes::generateChunk(
-    const Chunk& chunk, const ContinuousDensityFuncType& getContinuousDensity, const ValueType isoLevel)
+    const Chunk& chunk, const ContinuousDensityFuncType& getContinuousVoxel, const ValueType isoLevel)
 {
     if (!chunk.isGenerated()) {
         return {};
     }
 
-    const auto getDensity = [&chunk, &getContinuousDensity](const Chunk::Vector3Type worldPos)
+    const auto getVoxel = [&chunk, &getContinuousVoxel](const Chunk::Vector3Type worldPos)
     {
         const auto localPos = worldPos - chunk.getPosition() * Chunk::size;
-        return chunk.getDensityOrDefault(localPos, worldPos, getContinuousDensity);
+        return chunk.getVoxel(localPos, worldPos, getContinuousVoxel);
         // return getContinuousDensity(worldPos.as<ValueType>());
     };
 
@@ -332,14 +333,14 @@ Mesh MarchingCubes::generateChunk(
                 const auto pos = chunk.getPosition();
                 const auto worldPos = pos * Chunk::size + utils::Vector3{ x, y, z };
 
-                std::array<ValueType, 8> cubeValue{};
-                for (auto&& [value, offset] : std::views::zip(cubeValue, vertexOffset)) {
-                    value = getDensity(worldPos + offset * step);
+                std::array<Voxel, 8> cubeVoxels{};
+                for (auto&& [value, offset] : std::views::zip(cubeVoxels, vertexOffset)) {
+                    value = getVoxel(worldPos + offset.as<int>() * step);
                 }
 
                 uint8_t flagIndex{};
-                for (auto&& [index, value] : std::views::enumerate(cubeValue)) {
-                    if (value <= isoLevel) {
+                for (auto&& [index, voxel] : std::views::enumerate(cubeVoxels)) {
+                    if (voxel.density <= isoLevel) {
                         flagIndex |= 1 << index;
                     }
                 }
@@ -352,18 +353,36 @@ Mesh MarchingCubes::generateChunk(
                 std::array<Mesh::Vertex, 12> edgeVertices{};
                 for (uint8_t i{}; i < 12; ++i) {
                     if (flag & (1 << i)) {
-                        const auto offset = getOffset(
-                            cubeValue[edgeConnection[i].x],
-                            cubeValue[edgeConnection[i].y], isoLevel);
-                        const auto offsetVec = utils::Vector3{ offset, offset, offset };
+                        const auto index1 = edgeConnection[i].x;
+                        const auto index2 = edgeConnection[i].y;
 
+                        const auto voxel1 = cubeVoxels[index1];
+                        const auto voxel2 = cubeVoxels[index2];
+
+                        const auto offset = getOffset(voxel1.density, voxel2.density, isoLevel);
+
+                        const auto vOffset1 = vertexOffset[index1];
+                        // const auto vOffset2 = vertexOffset[index2];
+
+                        const auto offsetVec = utils::Vector3{ offset, offset, offset };
                         const auto vertexPos = worldPos.as<Mesh::ValueType>()
-                            + (vertexOffset[edgeConnection[i].x]
-                                .as<Mesh::ValueType>() + offsetVec * edgeDirection[i]) * step;
+                            + (vOffset1 + offsetVec * edgeDirection[i]) * step;
+
+                        // alternative interpolation
+                        // const auto v1 = worldPos.as<Mesh::ValueType>() + vOffset1 * step;
+                        // const auto v2 = worldPos.as<Mesh::ValueType>() + vOffset2 * step;
+                        // const auto vertexPos = v1 + (v2 - v1) * offset;
+
+                        const auto& [_, solidMaterial] = voxel1.density > isoLevel ? voxel1 : voxel2;
 
                         edgeVertices[i] = {
                             vertexPos,
-                            computeNormal(vertexPos, getContinuousDensity)
+                            computeNormal(vertexPos, getContinuousVoxel),
+                            {
+                                static_cast<ValueType>(solidMaterial),
+                                static_cast<ValueType>(solidMaterial),
+                                0.0f // i'll add interpolation in the future. maybe.
+                            }
                         };
                     }
                 }
@@ -400,15 +419,15 @@ MarchingCubes::ValueType MarchingCubes::getOffset(
 
 Mesh::Vector3Type MarchingCubes::computeNormal(
     const Mesh::Vector3Type vertexPos,
-    const ContinuousDensityFuncType& getContinuousDensity)
+    const ContinuousDensityFuncType& getContinuousVoxel)
 {
     const Mesh::Vector3Type grad{
-        getContinuousDensity(vertexPos + utils::Vector3{ 1.0f, 0.0f, 0.0f })
-        - getContinuousDensity(vertexPos - utils::Vector3{ 1.0f, 0.0f, 0.0f }),
-        getContinuousDensity(vertexPos + utils::Vector3{ 0.0f, 1.0f, 0.0f })
-        - getContinuousDensity(vertexPos - utils::Vector3{ 0.0f, 1.0f, 0.0f }),
-        getContinuousDensity(vertexPos + utils::Vector3{ 0.0f, 0.0f, 1.0f })
-        - getContinuousDensity(vertexPos - utils::Vector3{ 0.0f, 0.0f, 1.0f })
+        getContinuousVoxel(vertexPos + utils::Vector3{ 1.0f, 0.0f, 0.0f }).density
+        - getContinuousVoxel(vertexPos - utils::Vector3{ 1.0f, 0.0f, 0.0f }).density,
+        getContinuousVoxel(vertexPos + utils::Vector3{ 0.0f, 1.0f, 0.0f }).density
+        - getContinuousVoxel(vertexPos - utils::Vector3{ 0.0f, 1.0f, 0.0f }).density,
+        getContinuousVoxel(vertexPos + utils::Vector3{ 0.0f, 0.0f, 1.0f }).density
+        - getContinuousVoxel(vertexPos - utils::Vector3{ 0.0f, 0.0f, 1.0f }).density
     };
 
     if (const auto length = utils::length(grad); length >= 1e-16) {

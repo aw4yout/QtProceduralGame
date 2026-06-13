@@ -11,6 +11,8 @@ ApplicationWindow {
     visible: true
     title: qsTr("Game")
 
+    visibility: Window.FullScreen
+
     Viewport {
         id: viewport
         anchors.fill: parent
@@ -19,5 +21,6 @@ ApplicationWindow {
     DebugView {
         source: viewport
         resourceDetailsVisible: true
+        visible: false
     }
 }

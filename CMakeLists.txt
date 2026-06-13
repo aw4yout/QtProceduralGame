@@ -19,8 +19,16 @@ qt_add_qml_module(ProceduralGameApplication
     URI ProceduralGame
     VERSION 1.0
     QML_FILES
-    app/qml/Main.qml
-    app/qml/graphics/Viewport.qml
+        app/qml/Main.qml
+        app/qml/graphics/Viewport.qml
+        app/qml/graphics/materials/TerrainMaterial.qml
+)
+
+qt_add_resources(ProceduralGameApplication
+    PREFIX "/"
+    FILES
+        app/shaders/terrain/terrain.vert
+        app/shaders/terrain/terrain.frag
 )
 
 set_target_properties(ProceduralGameApplication PROPERTIES
@@ -54,4 +62,12 @@ target_link_libraries(ProceduralGameApplication
 # for QML_ELEMENT to work properly
 target_include_directories(ProceduralGameApplication
     PRIVATE app/src/geometry
+)
+
+add_custom_command(TARGET ProceduralGameApplication
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/app/resources
+    ${CMAKE_BINARY_DIR}/app/resources
+    COMMENT "Copying resources to build directory..."
 )

@@ -9,7 +9,10 @@ namespace gen {
 
 struct Voxel
 {
+    enum class Material : uint8_t { Air, Grass, Dirt, Stone, Sand, Snow };
+
     float density = -1.0f;
+    Material material = Material::Air;
 };
 
 class Chunk
@@ -17,7 +20,7 @@ class Chunk
 public:
     using ValueType = float;
     using Vector3Type = utils::Vector3i;
-    using ContinuousDensityFuncType = std::function<ValueType(utils::Vector3<ValueType>)>;
+    using ContinuousDensityFuncType = std::function<Voxel(utils::Vector3<ValueType>)>;
 
     static constexpr int size = 32;
     static constexpr int voxelsCount = size * size * size;
@@ -37,9 +40,7 @@ public:
     Voxel& getVoxel(Vector3Type position);
     const Voxel& getVoxel(Vector3Type position) const;
 
-    ValueType getDensityOrDefault(Vector3Type position, ValueType value = 0.0f) const;
-    ValueType getDensityOrDefault(
-        Vector3Type localPos, Vector3Type worldPos,
+    Voxel getVoxel(Vector3Type localPos, Vector3Type worldPos,
         const ContinuousDensityFuncType& getContinuousDensity) const;
 
 private:

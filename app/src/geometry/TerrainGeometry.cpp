@@ -35,6 +35,7 @@ void TerrainGeometry::updateData(const gen::Mesh& mesh)
 
     addAttribute(Attribute::PositionSemantic, 0, Attribute::F32Type);
     addAttribute(Attribute::NormalSemantic, sizeof(gen::Mesh::Vector3Type), Attribute::F32Type);
+    addAttribute(Attribute::TangentSemantic, 2 * sizeof(gen::Mesh::Vector3Type), Attribute::F32Type);
     addAttribute(Attribute::IndexSemantic, 0, Attribute::U32Type);
 
     float minX = std::numeric_limits<float>::max();
@@ -44,7 +45,7 @@ void TerrainGeometry::updateData(const gen::Mesh& mesh)
     float maxY = std::numeric_limits<float>::lowest();
     float maxZ = std::numeric_limits<float>::lowest();
 
-    for (const auto& [position, _] : mesh.getVertices()) {
+    for (const auto& [position, _, $] : mesh.getVertices()) {
         minX = qMin(minX, position.x); maxX = qMax(maxX, position.x);
         minY = qMin(minY, position.y); maxY = qMax(maxY, position.y);
         minZ = qMin(minZ, position.z); maxZ = qMax(maxZ, position.z);

@@ -24,17 +24,10 @@ const Voxel& Chunk::getVoxel(const Vector3Type position) const
     return m_voxels[index(position)];
 }
 
-Chunk::ValueType Chunk::getDensityOrDefault(
-    const Vector3Type position, const ValueType value) const
-{
-    return isValid(position) ? m_voxels[index(position)].density : value;
-}
-
-Chunk::ValueType Chunk::getDensityOrDefault(
-    const Vector3Type localPos, const Vector3Type worldPos,
+Voxel Chunk::getVoxel(const Vector3Type localPos, const Vector3Type worldPos,
     const ContinuousDensityFuncType& getContinuousDensity) const
 {
-    return isValid(localPos) ? m_voxels[index(localPos)].density : getContinuousDensity(worldPos.as<ValueType>());
+    return isValid(localPos) ? m_voxels[index(localPos)] : getContinuousDensity(worldPos.as<ValueType>());
 }
 
 constexpr bool Chunk::isValid(const Vector3Type position)
