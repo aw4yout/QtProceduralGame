@@ -3,23 +3,43 @@ import QtQuick.Controls
 import QtQuick3D.Helpers
 
 import "graphics"
+import "player"
 
 ApplicationWindow {
+    id: appWindow
+
     width: 1920
     height: 1080
 
     visible: true
     title: qsTr("Game")
 
-    visibility: Window.FullScreen
-
-    Viewport {
-        id: viewport
+    Scene {
+        id: scene
         anchors.fill: parent
+
+        player: player
+    }
+
+    Player {
+        id: player
+
+        mouseArea: mouseArea
+        appWindow: appWindow
+        onGround: scene.character.onGround
+    }
+
+    MouseArea {
+        id: mouseArea
+
+        anchors.fill: parent
+
+        hoverEnabled: true
+        propagateComposedEvents: true
     }
 
     DebugView {
-        source: viewport
+        source: scene
         resourceDetailsVisible: true
         visible: false
     }

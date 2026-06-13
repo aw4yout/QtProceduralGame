@@ -13,6 +13,10 @@ qt_add_executable(ProceduralGameApplication
     app/src/main.cpp
     app/src/geometry/TerrainGeometry.cpp
     app/src/geometry/TerrainGeometry.hpp
+    app/src/input/InputHandler.cpp
+    app/src/input/InputHandler.hpp
+    app/src/player/PlayerController.cpp
+    app/src/player/PlayerController.hpp
 )
 
 qt_add_qml_module(ProceduralGameApplication
@@ -20,8 +24,12 @@ qt_add_qml_module(ProceduralGameApplication
     VERSION 1.0
     QML_FILES
         app/qml/Main.qml
-        app/qml/graphics/Viewport.qml
+        app/qml/graphics/Scene.qml
         app/qml/graphics/materials/TerrainMaterial.qml
+        app/qml/graphics/Environment.qml
+        app/qml/player/FPSCamera.qml
+        app/qml/player/FPSCharacterController.qml
+        app/qml/player/Player.qml
 )
 
 qt_add_resources(ProceduralGameApplication
@@ -61,7 +69,7 @@ target_link_libraries(ProceduralGameApplication
 
 # for QML_ELEMENT to work properly
 target_include_directories(ProceduralGameApplication
-    PRIVATE app/src/geometry
+    PRIVATE app/src/geometry app/src/input app/src/player
 )
 
 add_custom_command(TARGET ProceduralGameApplication

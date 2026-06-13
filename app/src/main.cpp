@@ -21,9 +21,9 @@ int main(int argc, char* argv[])
     QVariantList chunks;
 
     size_t index{};
-    for (int i{}; i < 16; ++i) {
-        for (int j{}; j < 3; ++j) {
-            for (int k{}; k < 16; ++k) {
+    for (int i{}; i < 4; ++i) {
+        for (int j{}; j < 2; ++j) {
+            for (int k{}; k < 4; ++k) {
                 const auto chunk = generator.generate({ k, 1 - j, i });
 
                 const auto mesh = gen::MarchingCubes::generateChunk(

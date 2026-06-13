@@ -22,7 +22,7 @@ public:
         ValueType baseHeight = 0.0f;
         ValueType heightScale = 32.0f;
 
-        int32_t octaves = 12;
+        int32_t octaves = 4;
         ValueType persistence = 0.4f;
         ValueType frequency = 0.01f;
 
