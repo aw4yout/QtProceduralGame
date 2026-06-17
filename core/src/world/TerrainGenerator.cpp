@@ -90,7 +90,7 @@ Voxel::Material TerrainGenerator::getMaterial(
     const Vector3Type point, const ValueType surfaceHeight,
     const ValueType baseDensity, const ValueType density) const
 {
-    if (density <= 0.0f) {
+    if (density <= 0.0f && baseDensity <= 0.0f) {
         return Voxel::Material::Air;
     }
 
@@ -126,7 +126,11 @@ Chunk TerrainGenerator::generate(const Chunk::Vector3Type position) const
         for (int y = 0; y < Chunk::size; ++y) {
             for (int x = 0; x < Chunk::size; ++x) {
                 const auto worldPos = position * Chunk::size + utils::Vector3{ x, y, z };
-                chunk.getVoxel({ x, y, z }) = getVoxel(worldPos.as<ValueType>());
+                const auto voxel = getVoxel(worldPos.as<ValueType>());
+                if (voxel.material != Voxel::Material::Air && chunk.isOnlyAir()) {
+                    chunk.setOnlyAir(false);
+                }
+                chunk.getVoxel({ x, y, z }) = voxel;
             }
         }
     }
@@ -134,6 +138,21 @@ Chunk TerrainGenerator::generate(const Chunk::Vector3Type position) const
     chunk.setGenerated(true);
 
     return chunk;
+}
+
+void TerrainGenerator::regenerateIgnoreAir(Chunk& chunk) const
+{
+    for (int z = 0; z < Chunk::size; ++z) {
+        for (int y = 0; y < Chunk::size; ++y) {
+            for (int x = 0; x < Chunk::size; ++x) {
+                if (auto& voxel = chunk.getVoxel({ x, y, z });
+                    voxel.material != Voxel::Material::Air) {
+                    const auto worldPos = chunk.getPosition() * Chunk::size + utils::Vector3{ x, y, z };
+                    voxel = getVoxel(worldPos.as<ValueType>());
+                }
+            }
+        }
+    }
 }
 
 } // gen

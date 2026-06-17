@@ -4,7 +4,7 @@ VARYING vec3 normal;
 VARYING flat vec2 material;
 VARYING float blendWeight;
 
-const float texScale = 0.005;
+const float texScale = 0.5;
 
 vec4 sampleTexture(sampler2D tex, vec3 pos, vec3 norm) {
     vec3 blendWeights = pow(abs(norm), vec3(4.0));

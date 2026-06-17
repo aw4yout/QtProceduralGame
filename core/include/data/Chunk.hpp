@@ -22,7 +22,7 @@ public:
     using Vector3Type = utils::Vector3i;
     using ContinuousDensityFuncType = std::function<Voxel(utils::Vector3<ValueType>)>;
 
-    static constexpr int size = 32;
+    static constexpr uint8_t size = 16;
     static constexpr int voxelsCount = size * size * size;
 
 public:
@@ -37,14 +37,22 @@ public:
     bool isGenerated() const { return m_generated; }
     void setGenerated(const bool generated) { m_generated = generated; }
 
+    bool isOnlyAir() const { return m_onlyAir; }
+    void setOnlyAir(const bool onlyAir) { m_onlyAir = onlyAir; }
+
     Voxel& getVoxel(Vector3Type position);
     const Voxel& getVoxel(Vector3Type position) const;
 
     Voxel getVoxel(Vector3Type localPos, Vector3Type worldPos,
         const ContinuousDensityFuncType& getContinuousDensity) const;
 
+    static constexpr bool isValid(const Vector3Type position)
+    {
+        return position.x >= 0 && position.x < size
+            && position.y >= 0 && position.y < size
+            && position.z >= 0 && position.z < size;
+    }
 private:
-    static constexpr bool isValid(Vector3Type position);
     static constexpr std::size_t index(Vector3Type position);
 
 private:
@@ -52,7 +60,7 @@ private:
 
     std::array<Voxel, voxelsCount> m_voxels;
 
-    bool m_generated{}, m_meshed{};
+    bool m_generated{}, m_onlyAir{ true };
 };
 
 } // gen

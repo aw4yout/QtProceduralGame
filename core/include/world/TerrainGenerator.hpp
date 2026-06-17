@@ -22,18 +22,18 @@ public:
         ValueType baseHeight = 0.0f;
         ValueType heightScale = 32.0f;
 
-        int32_t octaves = 4;
+        int32_t octaves = 6;
         ValueType persistence = 0.4f;
         ValueType frequency = 0.01f;
 
-        ValueType caveFrequency = 0.03f;
+        ValueType caveFrequency = 0.04f;
         ValueType caveThreshold = 0.7f;
-        ValueType caveSmoothness = 0.8f;
+        ValueType caveSmoothness = 0.1f;
 
         ValueType snowLine = 40.0f;
         ValueType sandDepth = 3.0f;
-        ValueType grassDepth = 3.0f;
-        ValueType dirtDepth = 6.0f;
+        ValueType grassDepth = 1.0f;
+        ValueType dirtDepth = 3.5f;
     };
 
     explicit TerrainGenerator(const Config& config);
@@ -45,6 +45,7 @@ public:
     Voxel::Material getMaterial(Vector3Type point, ValueType surfaceHeight, ValueType baseDensity, ValueType density) const;
 
     Chunk generate(Chunk::Vector3Type position) const;
+    void regenerateIgnoreAir(Chunk& chunk) const;
 
 private:
     Config m_config;

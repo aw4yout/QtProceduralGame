@@ -5,7 +5,7 @@ project(ProceduralGame VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Quick3D Quick3DPhysics)
+find_package(Qt6 REQUIRED COMPONENTS Quick Quick3D Quick3DPhysics Concurrent)
 
 qt_standard_project_setup(REQUIRES 6.11.1)
 
@@ -17,6 +17,10 @@ qt_add_executable(ProceduralGameApplication
     app/src/input/InputHandler.hpp
     app/src/player/PlayerController.cpp
     app/src/player/PlayerController.hpp
+    app/src/chunks/ChunkManager.cpp
+    app/src/chunks/ChunkManager.hpp
+    app/src/chunks/ChunkListModel.cpp
+    app/src/chunks/ChunkListModel.hpp
 )
 
 qt_add_qml_module(ProceduralGameApplication
@@ -54,7 +58,7 @@ add_library(ProceduralGameLib
     core/include/data/Chunk.hpp
     core/src/data/Mesh.cpp
     core/include/data/Mesh.hpp
-    core/include/meshing/MarchingCubes.cpp
+    core/src/meshing/MarchingCubes.cpp
     core/include/meshing/MarchingCubes.hpp
 )
 
@@ -64,12 +68,12 @@ target_include_directories(ProceduralGameLib
 
 target_link_libraries(ProceduralGameApplication
     PRIVATE Qt6::Quick Qt6::Quick3D Qt6::Quick3DPhysics
-    ProceduralGameLib
+    Qt6::Concurrent ProceduralGameLib
 )
 
 # for QML_ELEMENT to work properly
 target_include_directories(ProceduralGameApplication
-    PRIVATE app/src/geometry app/src/input app/src/player
+    PRIVATE app/src/geometry app/src/input app/src/player app/src/chunks
 )
 
 add_custom_command(TARGET ProceduralGameApplication

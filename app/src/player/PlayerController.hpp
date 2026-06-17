@@ -71,8 +71,8 @@ private:
     QVector3D m_cameraRotation;
 
 private:
-    float m_speed{ 500 }, m_sprintMultiplier{ 2 };
-    float m_jumpForce{ 8000 };
+    float m_speed{ 5 }, m_sprintMultiplier{ 2 };
+    float m_jumpForce{ 80 };
 
     bool m_onGround{}, m_moving{};
 };

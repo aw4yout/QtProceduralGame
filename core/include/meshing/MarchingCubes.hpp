@@ -17,7 +17,7 @@ public:
     static Mesh generateChunk(
         const Chunk& chunk,
         const ContinuousDensityFuncType& getContinuousVoxel,
-        ValueType isoLevel = {});
+        ValueType isoLevel = {}, uint8_t step = 1);
 
 private:
     static ValueType getOffset(

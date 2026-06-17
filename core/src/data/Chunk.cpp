@@ -30,13 +30,6 @@ Voxel Chunk::getVoxel(const Vector3Type localPos, const Vector3Type worldPos,
     return isValid(localPos) ? m_voxels[index(localPos)] : getContinuousDensity(worldPos.as<ValueType>());
 }
 
-constexpr bool Chunk::isValid(const Vector3Type position)
-{
-    return position.x >= 0 && position.x < size
-        && position.y >= 0 && position.y < size
-        && position.z >= 0 && position.z < size;
-}
-
 constexpr std::size_t Chunk::index(const Vector3Type position)
 {
     return position.x + position.y * size + position.z * size * size;

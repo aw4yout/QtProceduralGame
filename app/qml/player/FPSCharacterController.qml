@@ -7,8 +7,8 @@ CharacterController {
     readonly property bool onGround: (collisions & CharacterController.Down)
 
     collisionShapes: CapsuleShape {
-        diameter: 50
-        height: 130
+        diameter: 0.50
+        height: 1.30
     }
 
     Behavior on movement {

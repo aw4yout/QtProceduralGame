@@ -1,4 +1,4 @@
-#include "MarchingCubes.hpp"
+#include "meshing/MarchingCubes.hpp"
 
 #include <array>
 #include <ranges>
@@ -311,9 +311,10 @@ inline constexpr std::array<Mesh::Vector3Type, 12> edgeDirection =
 }
 
 Mesh MarchingCubes::generateChunk(
-    const Chunk& chunk, const ContinuousDensityFuncType& getContinuousVoxel, const ValueType isoLevel)
+    const Chunk& chunk, const ContinuousDensityFuncType& getContinuousVoxel,
+    const ValueType isoLevel, const uint8_t step)
 {
-    if (!chunk.isGenerated()) {
+    if (!chunk.isGenerated() || chunk.isOnlyAir()) {
         return {};
     }
 
@@ -326,7 +327,6 @@ Mesh MarchingCubes::generateChunk(
 
     Mesh mesh;
 
-    constexpr uint8_t step = 1; // change it to kinda decimate the mesh
     for (uint8_t z = 0; z < Chunk::size; z += step) {
         for (uint8_t y = 0; y < Chunk::size; y += step) {
             for (uint8_t x = 0; x < Chunk::size; x += step) {
