@@ -142,8 +142,8 @@ void ChunkManager::setVoxel(const QVector3D& voxelPos, const bool solid)
 
     QList<ChunkDataPtrType> toRemesh;
     for (const auto& pos : chunksToRemesh) {
-        if (auto it = m_chunks.find(pos); it != m_chunks.end()
-            && it->second->state == ChunkData::State::Meshed) {
+        if (auto it = m_chunks.find(pos); it != m_chunks.end()) {
+            it->second->chunk->setOnlySolid(false);
             it->second->state = ChunkData::State::Generated;
             toRemesh.append(it->second);
         }
