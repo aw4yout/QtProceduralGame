@@ -15,7 +15,9 @@ This is also the first project where I implemented parallel execution using [QtT
 
 ## Showcase
 
-... I'll upload screenshots here ...
+<img width="1280" height="720" src="https://github.com/user-attachments/assets/4802dabf-4551-4f7f-9315-d6e19ef74772" />
+<img width="1280" height="720" src="https://github.com/user-attachments/assets/b5401b70-ab39-4f5c-b296-8942c9c4585b" />
+<img width="1280" height="720" src="https://github.com/user-attachments/assets/ee0fbd28-19b4-4ca7-942b-d4a070f84838" />
 
 ## Controls
 
