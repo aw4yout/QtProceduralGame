@@ -128,6 +128,18 @@ T length(Vector3<T> v)
 }
 
 template<Number T>
+Vector2<T> normalize(Vector2<T> v)
+{
+    return v / length(v);
+}
+
+template<Number T>
+Vector3<T> normalize(Vector3<T> v)
+{
+    return v / length(v);
+}
+
+template<Number T>
 struct Vector2Hash
 {
     size_t operator()(const Vector2<T>& v) const noexcept

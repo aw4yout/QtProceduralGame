@@ -314,7 +314,7 @@ Mesh MarchingCubes::generateChunk(
     const Chunk& chunk, const ContinuousDensityFuncType& getContinuousVoxel,
     const ValueType isoLevel, const uint8_t step)
 {
-    if (!chunk.isGenerated() || chunk.isOnlyAir()) {
+    if (!chunk.isGenerated() || chunk.isOnlyAir() || chunk.isOnlySolid()) {
         return {};
     }
 
@@ -364,11 +364,11 @@ Mesh MarchingCubes::generateChunk(
                         const auto vOffset1 = vertexOffset[index1];
                         // const auto vOffset2 = vertexOffset[index2];
 
+                        // alternative interpolation
                         const auto offsetVec = utils::Vector3{ offset, offset, offset };
                         const auto vertexPos = worldPos.as<Mesh::ValueType>()
                             + (vOffset1 + offsetVec * edgeDirection[i]) * step;
 
-                        // alternative interpolation
                         // const auto v1 = worldPos.as<Mesh::ValueType>() + vOffset1 * step;
                         // const auto v2 = worldPos.as<Mesh::ValueType>() + vOffset2 * step;
                         // const auto vertexPos = v1 + (v2 - v1) * offset;

@@ -40,6 +40,9 @@ public:
     bool isOnlyAir() const { return m_onlyAir; }
     void setOnlyAir(const bool onlyAir) { m_onlyAir = onlyAir; }
 
+    bool isOnlySolid() const { return m_onlySolid; }
+    void setOnlySolid(const bool onlySolid) { m_onlySolid = onlySolid; }
+
     Voxel& getVoxel(Vector3Type position);
     const Voxel& getVoxel(Vector3Type position) const;
 
@@ -60,7 +63,7 @@ private:
 
     std::array<Voxel, voxelsCount> m_voxels;
 
-    bool m_generated{}, m_onlyAir{ true };
+    bool m_generated{}, m_onlyAir{ true }, m_onlySolid{ true };
 };
 
 } // gen

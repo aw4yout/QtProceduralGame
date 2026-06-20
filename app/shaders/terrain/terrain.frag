@@ -10,7 +10,7 @@ vec4 sampleTexture(sampler2D tex, vec3 pos, vec3 norm) {
     vec3 blendWeights = pow(abs(norm), vec3(4.0));
     blendWeights = blendWeights / (blendWeights.x + blendWeights.y + blendWeights.z);
 
-    vec4 colX = texture(tex, pos.yz * texScale);
+    vec4 colX = texture(tex, pos.zy * texScale);
     vec4 colY = texture(tex, pos.xz * texScale);
     vec4 colZ = texture(tex, pos.xy * texScale);
 
@@ -63,6 +63,7 @@ vec4 getMaterialColor(float id, vec3 pos, vec3 norm) {
     if (matId == 3.0) return sampleTexture(stoneColor, pos, norm);
     if (matId == 4.0) return sampleTexture(sandColor, pos, norm);
     if (matId == 5.0) return sampleTexture(snowColor, pos, norm);
+    if (matId == 6.0) return vec4(0.2, 0.2, 1.0, 1.0);
     return vec4(1.0, 0.0, 1.0, 1.0);
 }
 
@@ -73,6 +74,7 @@ vec3 getMaterialNormal(float id, vec3 pos, vec3 norm) {
     if (matId == 3.0) return sampleNormal(stoneNormal, pos, norm);
     if (matId == 4.0) return sampleNormal(sandNormal, pos, norm);
     if (matId == 5.0) return sampleNormal(snowNormal, pos, norm);
+    if (matId == 6.0) return sampleNormal(snowNormal, pos, norm);
     return vec3(0.0, 0.0, 1.0);
 }
 
@@ -83,6 +85,7 @@ float getMaterialRoughness(float id, vec3 pos, vec3 norm) {
     if (matId == 3.0) return sampleTexture(stoneRoughness, pos, norm).r;
     if (matId == 4.0) return sampleTexture(sandRoughness, pos, norm).r;
     if (matId == 5.0) return sampleTexture(snowRoughness, pos, norm).r;
+    if (matId == 6.0) return 0.1;
     return 1.0;
 }
 
@@ -93,6 +96,7 @@ float getMaterialAo(float id, vec3 pos, vec3 norm) {
     if (matId == 3.0) return sampleTexture(stoneAo, pos, norm).r;
     if (matId == 4.0) return sampleTexture(sandAo, pos, norm).r;
     if (matId == 5.0) return sampleTexture(snowAo, pos, norm).r;
+    if (matId == 6.0) return 1.0;
     return 0.0;
 }
 

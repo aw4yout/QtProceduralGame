@@ -31,21 +31,23 @@ public:
         ValueType caveSmoothness = 0.1f;
 
         ValueType snowLine = 40.0f;
-        ValueType sandDepth = 3.0f;
+        ValueType seaLevel = 6.0f;
         ValueType grassDepth = 1.0f;
         ValueType dirtDepth = 3.5f;
     };
 
     explicit TerrainGenerator(const Config& config);
 
+    Chunk generate(Chunk::Vector3Type position) const;
+
+private:
     ValueType getHeight(Vector2Type point) const;
     ValueType getCaveDensity(Vector3Type point) const;
     ValueType getDensity(Vector3Type point) const;
     Voxel getVoxel(Vector3Type point) const;
-    Voxel::Material getMaterial(Vector3Type point, ValueType surfaceHeight, ValueType baseDensity, ValueType density) const;
-
-    Chunk generate(Chunk::Vector3Type position) const;
-    void regenerateIgnoreAir(Chunk& chunk) const;
+    Voxel::Material getMaterial(
+        Vector3Type point, ValueType surfaceHeight,
+        ValueType baseDensity, ValueType density) const;
 
 private:
     Config m_config;

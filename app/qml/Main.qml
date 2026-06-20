@@ -43,4 +43,10 @@ ApplicationWindow {
         resourceDetailsVisible: true
         visible: false
     }
+
+    Text {
+        text: `position: ${scene.character.position}`
+        font.pixelSize: 24
+        color: "white"
+    }
 }

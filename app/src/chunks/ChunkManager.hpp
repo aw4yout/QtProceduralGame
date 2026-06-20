@@ -3,8 +3,8 @@
 
 #include <data/Chunk.hpp>
 
-#include <QVariantList>
 #include <QVector3D>
+#include <QtTaskTree>
 #include <QtQml/qqmlregistration.h>
 
 #include <unordered_map>
@@ -22,13 +22,15 @@ class TerrainGeometry;
 
 struct ChunkData
 {
-    enum class State : uint8_t { Unloaded, Generating, Loaded };
+    enum class State : uint8_t { Unloaded, Generating, Generated, Meshing, Meshed };
 
     gen::Chunk::Vector3Type position{};
     State state = State::Unloaded;
 
     std::shared_ptr<TerrainGeometry> geometry;
     std::shared_ptr<gen::Chunk> chunk;
+
+    std::atomic_bool cancelled{};
 };
 
 class ChunkManager : public QObject
@@ -43,7 +45,8 @@ class ChunkManager : public QObject
     Q_PROPERTY(uint8_t worldScale READ worldScale CONSTANT)
     Q_PROPERTY(uint8_t chunkSize READ chunkSize CONSTANT)
 public:
-    using ChunkMapType = std::unordered_map<gen::Chunk::Vector3Type, ChunkData, gen::utils::Vector3iHash>;
+    using ChunkDataPtrType = std::shared_ptr<ChunkData>;
+    using ChunkMapType = std::unordered_map<gen::Chunk::Vector3Type, ChunkDataPtrType, gen::utils::Vector3iHash>;
 
     explicit ChunkManager(QObject* parent = nullptr);
 
@@ -56,25 +59,28 @@ public:
     static constexpr uint8_t chunkSize() { return gen::Chunk::size; }
 
     Q_INVOKABLE void update(uint8_t chunksCount = 2);
-    Q_INVOKABLE void destroyVoxel(const QVector3D& voxelPos, const QVector3D& chunkPos);
+    Q_INVOKABLE void setVoxel(const QVector3D& voxelPos, bool solid = false);
 
     gen::Voxel getVoxelFromLoadedChunks(
         const gen::utils::Vector3<gen::Chunk::ValueType>& worldPos) const;
 
 private:
-    void generate(gen::Chunk::Vector3Type position);
-    void regenerate(gen::Chunk::Vector3Type position);
-    void finishGeneration(ChunkData&& generatedChunk);
+    void finishGeneration(ChunkDataPtrType generatedChunk);
     void unload(gen::Chunk::Vector3Type position);
+
+    QtTaskTree::Group generateChunksTask(const QList<ChunkDataPtrType>& chunks) const;
+    QtTaskTree::Group generateMeshesTask(const QList<ChunkDataPtrType>& chunks);
+
+    QtTaskTree::ExecutableItem recipe(
+        const QList<ChunkDataPtrType>& renderChunks,
+        const QList<ChunkDataPtrType>& borderChunks);
 
 private:
     ChunkMapType m_chunks;
-    std::vector<TerrainGeometry*> m_generated;
     ChunkListModel m_activeChunks;
     QVector3D m_playerPos;
 
-    uint8_t m_renderDistance = 8;
-    size_t jobsCount{};
+    uint8_t m_renderDistance = 2;
 
     std::shared_ptr<const gen::TerrainGenerator> m_generator;
 };

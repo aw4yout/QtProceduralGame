@@ -4,10 +4,9 @@
 #include <world/TerrainGenerator.hpp>
 #include <meshing/MarchingCubes.hpp>
 
-#include <QtConcurrent/QtConcurrentRun>
-#include <QFutureWatcher>
-
 namespace app {
+
+using namespace QtTaskTree;
 
 ChunkManager::ChunkManager(QObject* parent)
     : QObject(parent)
@@ -27,11 +26,11 @@ void ChunkManager::update(const uint8_t chunksCount)
     for (const auto& position : m_chunks | std::views::keys) {
         const auto dist = std::max({
             std::abs(position.x - playerChunk.x),
-            std::abs(position.y - playerChunk.y) * 2,
+            std::abs(position.y - playerChunk.y),
             std::abs(position.z - playerChunk.z)
         });
 
-        if (dist > m_renderDistance) {
+        if (dist > m_renderDistance + 1) {
             toUnload.push_back(position);
         }
     }
@@ -40,170 +39,163 @@ void ChunkManager::update(const uint8_t chunksCount)
         unload(position);
     }
 
-    size_t processed{};
-    for (int32_t radius = 0; radius <= m_renderDistance && processed < chunksCount; ++radius) {
-        for (int32_t x = -radius; x <= radius && processed < chunksCount; ++x) {
-            for (int32_t y = -radius / 2; y <= radius / 2 && processed < chunksCount; ++y) {
-                for (int32_t z = -radius; z <= radius && processed < chunksCount; ++z) {
-                    if (processed >= chunksCount) {
-                        return;
+    QList<ChunkDataPtrType> renderChunks, borderChunks;
+    for (int32_t radius = 0; radius <= m_renderDistance + 1; ++radius) {
+        for (int32_t x = -radius; x <= radius; ++x) {
+            for (int32_t z = -radius; z <= radius; ++z) {
+                for (int32_t y = -radius; y <= radius; ++y) {
+                    const auto dist = std::max({ std::abs(x), std::abs(y), std::abs(z) });
+
+                    if (dist != radius) {
+                        continue;
                     }
-                    if (const auto target = playerChunk + gen::utils::Vector3{ x, y, z };
-                        !m_chunks.contains(target) && jobsCount < std::thread::hardware_concurrency()) {
-                        ++jobsCount;
-                        generate(target);
-                        processed++;
+
+                    const auto target = playerChunk + gen::utils::Vector3{ x, y, z };
+
+                    if (dist <= m_renderDistance && renderChunks.size() < chunksCount) {
+                        if (auto it = m_chunks.find(target); it == m_chunks.end()) {
+                            auto chunk = std::make_shared<ChunkData>(target);
+                            m_chunks[target] = chunk;
+                            renderChunks.append(chunk);
+                        } else if (it->second->state != ChunkData::State::Meshed) {
+                            renderChunks.append(it->second);
+                        }
+                    } else if (dist == m_renderDistance + 1 || renderChunks.size() >= chunksCount) {
+                        if (auto it = m_chunks.find(target); it == m_chunks.end()) {
+                            auto chunk = std::make_shared<ChunkData>(target);
+                            m_chunks[target] = chunk;
+                            borderChunks.append(chunk);
+                        } else if (it->second->state == ChunkData::State::Unloaded) {
+                            borderChunks.append(it->second);
+                        }
                     }
                 }
             }
         }
     }
-}
 
-void ChunkManager::destroyVoxel(const QVector3D& voxelPos, const QVector3D& chunkPos)
-{
-    const gen::Chunk::Vector3Type target{
-        static_cast<int>(chunkPos.x()),
-        static_cast<int>(chunkPos.y()),
-        static_cast<int>(chunkPos.z())
-    };
-
-    const auto it = m_chunks.find(target);
-    if (it == m_chunks.end() || !it->second.chunk) {
+    if (renderChunks.isEmpty() && borderChunks.isEmpty()) {
         return;
     }
 
-    const gen::Chunk::Vector3Type localPos{
-        static_cast<int>(std::floor(voxelPos.x())) - target.x * gen::Chunk::size,
-        static_cast<int>(std::floor(voxelPos.y())) - target.y * gen::Chunk::size,
-        static_cast<int>(std::floor(voxelPos.z())) - target.z * gen::Chunk::size
+    auto* taskTree = new QTaskTree(this);
+    taskTree->setRecipe({ recipe(renderChunks, borderChunks) });
+    taskTree->start();
+    connect(taskTree, &QTaskTree::done, this, [taskTree](const auto) { taskTree->deleteLater(); });
+}
+
+void ChunkManager::setVoxel(const QVector3D& voxelPos, const bool solid)
+{
+    const auto center = gen::utils::Vector3{ voxelPos.x(), voxelPos.y(), voxelPos.z() }.as<int>();
+
+    std::unordered_set<gen::Chunk::Vector3Type, gen::utils::Vector3iHash> chunksToRemesh;
+
+    const auto getChunkPos = [](const gen::Chunk::Vector3Type pos) {
+        const auto [x, y, z] = pos.as<float>() / gen::Chunk::size;
+        return gen::utils::Vector3{ std::floor(x), std::floor(y), std::floor(z) }.as<int>();
     };
 
-    it->second.chunk->getVoxel(localPos) = { -1.0f, gen::Voxel::Material::Air };
+    for (int x = 0; x < 2; ++x) {
+        for (int y = 0; y < 2; ++y) {
+            for (int z = 0; z < 2; ++z) {
+                const auto pos = center + gen::utils::Vector3{ x, y, z };
+                const auto voxelChunk = getChunkPos(pos);
 
-    regenerate(target);
+                auto it = m_chunks.find(voxelChunk);
+                if (it == m_chunks.end() || !it->second->chunk) {
+                    continue;
+                }
 
-    const std::array<std::pair<bool, gen::Chunk::Vector3Type>, 6> checks =
-    {{
-        { localPos.x == 0, { -1, 0, 0 } },
-        { localPos.x == gen::Chunk::size - 1, { 1, 0, 0 } },
-        { localPos.y == 0, { 0, -1, 0 } },
-        { localPos.y == gen::Chunk::size - 1, { 0, 1, 0 } },
-        { localPos.z == 0, { 0, 0, -1 } },
-        { localPos.z == gen::Chunk::size - 1, { 0, 0, 1 } }
-    }};
+                const auto localPos = pos - voxelChunk * gen::Chunk::size;
+                if (!gen::Chunk::isValid(localPos)) {
+                    continue;
+                }
 
-    for (const auto& [cond, vec] : checks) {
-        if (cond && m_chunks.contains(target + vec)) {
-            regenerate(target + vec);
+                it->second->chunk->getVoxel(localPos) = solid
+                    ? gen::Voxel{ 1.0f, gen::Voxel::Material::Snow }
+                    : gen::Voxel{ -1.0f, gen::Voxel::Material::Air };
+                chunksToRemesh.insert(voxelChunk);
+
+                if (localPos.x == 0) {
+                    chunksToRemesh.insert({ voxelChunk.x - 1, voxelChunk.y, voxelChunk.z });
+                } else if (localPos.x == gen::Chunk::size - 1) {
+                    chunksToRemesh.insert({voxelChunk.x + 1, voxelChunk.y, voxelChunk.z });
+                }
+                if (localPos.y == 0) {
+                    chunksToRemesh.insert({ voxelChunk.x, voxelChunk.y - 1, voxelChunk.z });
+                } else if (localPos.y == gen::Chunk::size - 1) {
+                    chunksToRemesh.insert({ voxelChunk.x, voxelChunk.y + 1, voxelChunk.z });
+                }
+                if (localPos.z == 0) {
+                    chunksToRemesh.insert({ voxelChunk.x, voxelChunk.y, voxelChunk.z - 1 });
+                }
+                else if (localPos.z == gen::Chunk::size - 1) {
+                    chunksToRemesh.insert({ voxelChunk.x, voxelChunk.y, voxelChunk.z + 1 });
+                }
+            }
         }
+    }
+
+    if (chunksToRemesh.empty()) {
+        return;
+    }
+
+    QList<ChunkDataPtrType> toRemesh;
+    for (const auto& pos : chunksToRemesh) {
+        if (auto it = m_chunks.find(pos); it != m_chunks.end()
+            && it->second->state == ChunkData::State::Meshed) {
+            it->second->state = ChunkData::State::Generated;
+            toRemesh.append(it->second);
+        }
+    }
+
+    if (!toRemesh.isEmpty()) {
+        auto* taskTree = new QTaskTree(this);
+        taskTree->setRecipe({ generateMeshesTask(toRemesh) });
+        taskTree->start();
+        connect(taskTree, &QTaskTree::done, this, [taskTree](const auto) { taskTree->deleteLater(); });
     }
 }
 
 gen::Voxel ChunkManager::getVoxelFromLoadedChunks(
     const gen::utils::Vector3<gen::Chunk::ValueType>& worldPos) const
 {
+    const gen::utils::Vector3 flooredWorld = {
+        std::floor(worldPos.x), std::floor(worldPos.y), std::floor(worldPos.z)
+    };
     const gen::Chunk::Vector3Type chunkPos{
-        static_cast<int>(std::floor(worldPos.x / gen::Chunk::size)),
-        static_cast<int>(std::floor(worldPos.y / gen::Chunk::size)),
-        static_cast<int>(std::floor(worldPos.z / gen::Chunk::size))
+        static_cast<int>(std::floor(flooredWorld.x / gen::Chunk::size)),
+        static_cast<int>(std::floor(flooredWorld.y / gen::Chunk::size)),
+        static_cast<int>(std::floor(flooredWorld.z / gen::Chunk::size))
     };
 
     const auto it = m_chunks.find(chunkPos);
-    if (it == m_chunks.end() || !it->second.chunk) {
-        return m_generator->getVoxel(worldPos);
+    if (it == m_chunks.end() || !it->second->chunk) {
+#ifndef NDEBUG
+        assert(false && "should be unreachable");
+#endif
+        //return m_generator->getVoxel(worldPos);
+        return {};
     }
 
-    if (const auto localPos = worldPos.as<int32_t>() - chunkPos * gen::Chunk::size;
+    if (const auto localPos = flooredWorld.as<int>() - chunkPos * gen::Chunk::size;
         gen::Chunk::isValid(localPos)) {
-        return it->second.chunk->getVoxel(localPos);
+        return it->second->chunk->getVoxel(localPos);
     }
-    return m_generator->getVoxel(worldPos);
+#ifndef NDEBUG
+    assert(false && "should be unreachable");
+#endif
+    //return m_generator->getVoxel(worldPos);
+    return {};
 }
 
-void ChunkManager::generate(const gen::Chunk::Vector3Type position)
+void ChunkManager::finishGeneration(ChunkDataPtrType generatedChunk)
 {
-    using ReturnType = std::pair<gen::Mesh, std::shared_ptr<gen::Chunk>>;
-
-    ChunkData data{ position, ChunkData::State::Generating };
-    m_chunks[position] = std::move(data);
-
-    auto* watcher = new QFutureWatcher<ReturnType>(this);
-    connect(watcher, &QFutureWatcher<ReturnType>::finished, this, [this, watcher, position]
-    {
-        if (const auto& [mesh, chunk] = watcher->result(); !chunk->isOnlyAir()) {
-            const auto [x, y, z] = position.as<gen::Chunk::ValueType>();
-            const auto geometry = std::make_shared<TerrainGeometry>();
-            geometry->setMesh(mesh);
-            geometry->setChunkPosition({ x, y, z });
-            finishGeneration({ position, ChunkData::State::Loaded, geometry, chunk });
-        } else {
-            finishGeneration({ position, ChunkData::State::Unloaded });
-        }
-        watcher->deleteLater();
-    }, Qt::QueuedConnection);
-
-    const auto future = QtConcurrent::run([this, position]
-    {
-        const auto chunk = std::make_shared<gen::Chunk>(m_generator->generate(position));
-        const auto mesh = gen::MarchingCubes::generateChunk(
-            *chunk, [this](const gen::Mesh::Vector3Type pos) {
-                return getVoxelFromLoadedChunks(pos);
-            });
-
-        return ReturnType{ mesh, chunk };
-    });
-
-    watcher->setFuture(future);
-}
-
-void ChunkManager::regenerate(const gen::Chunk::Vector3Type position)
-{
-    const auto it = m_chunks.find(position);
-    if (it == m_chunks.end() || !it->second.chunk) {
-        return;
-    }
-
-    auto chunk = it->second.chunk;
-
-    using ReturnType = gen::Mesh;
-    auto* watcher = new QFutureWatcher<ReturnType>(this);
-
-    connect(watcher, &QFutureWatcher<ReturnType>::finished, this, [this, watcher, position]
-    {
-        const auto& mesh = watcher->result();
-        if (const auto chunkIt = m_chunks.find(position);
-            chunkIt != m_chunks.end() && chunkIt->second.geometry) {
-            // auto chunk =
-            // unload this chunk and create the new one
-            chunkIt->second.geometry->setMesh(mesh);
-        }
-        watcher->deleteLater();
-    }, Qt::QueuedConnection);
-
-    const auto future = QtConcurrent::run([this, chunk]
-    {
-        m_generator->regenerateIgnoreAir(*chunk);
-        return gen::MarchingCubes::generateChunk(*chunk,
-            [this](const gen::Mesh::Vector3Type pos) {
-                return getVoxelFromLoadedChunks(pos);
-            });
-    });
-
-    watcher->setFuture(future);
-}
-
-void ChunkManager::finishGeneration(ChunkData&& generatedChunk)
-{
-    if (const auto it = m_chunks.find(generatedChunk.position);
+    if (const auto it = m_chunks.find(generatedChunk->position);
         it != m_chunks.end()) {
         it->second = std::move(generatedChunk);
-        if (it->second.state == ChunkData::State::Loaded) {
-            m_generated.push_back(it->second.geometry.get());
-        }
-        if (--jobsCount == 0 || m_generated.size() >= 4) {
-            m_activeChunks.addChunks(m_generated);
-            m_generated.clear();
+        if (it->second->geometry->vertexCount() > 0) {
+            m_activeChunks.addChunks({ it->second->geometry.get() });
         }
     }
 }
@@ -212,11 +204,117 @@ void ChunkManager::unload(const gen::Chunk::Vector3Type position)
 {
     if (const auto it = m_chunks.find(position);
         it != m_chunks.end()) {
-        if (it->second.geometry) {
-            m_activeChunks.removeChunk(it->second.geometry.get());
+        it->second->cancelled = true;
+        if (it->second->geometry) {
+            m_activeChunks.removeChunk(it->second->geometry.get());
         }
         m_chunks.erase(it);
     }
+}
+
+Group ChunkManager::generateChunksTask(const QList<ChunkDataPtrType>& chunks) const
+{
+    ListIterator iterator{ chunks };
+
+    const auto groupSetup = [iterator] {
+        if (auto& state = (*iterator)->state; state == ChunkData::State::Unloaded) {
+            state = ChunkData::State::Generating;
+        }
+    };
+    const auto checkCancelledOrGenerated = [iterator] {
+        return (*iterator)->cancelled.load()
+            || (*iterator)->state != ChunkData::State::Generating;
+    };
+    const auto task = [this](const auto& chunk) {
+        chunk->chunk = std::make_shared<gen::Chunk>(m_generator->generate(chunk->position));
+    };
+    const auto groupDone = [iterator] { (*iterator)->state = ChunkData::State::Generated; };
+
+    return For(iterator) >> Do {
+        finishAllAndSuccess,
+        parallel,
+        Group {
+            stopOnError,
+            onGroupSetup(groupSetup),
+            If (checkCancelledOrGenerated) >> Then { errorItem },
+            QThreadFunctionTask<void>([task, iterator](auto& thread) {
+                thread.setThreadFunctionData(task, *iterator);
+            }),
+            onGroupDone(groupDone, CallDoneFlag::OnSuccess)
+        }
+    };
+}
+
+Group ChunkManager::generateMeshesTask(const QList<ChunkDataPtrType>& chunks)
+{
+    using ReturnType = std::pair<ChunkDataPtrType, gen::Mesh>;
+
+    ListIterator iterator{ chunks };
+    Storage<std::vector<ReturnType>> storage;
+
+    const auto groupSetup = [iterator] {
+        if (auto& state = (*iterator)->state; state == ChunkData::State::Generated) {
+            state = ChunkData::State::Meshing;
+        }
+    };
+    const auto checkCancelledOrEmpty = [iterator] {
+        return (*iterator)->cancelled.load()
+            || (*iterator)->chunk->isOnlyAir()
+            || (*iterator)->state != ChunkData::State::Meshing;
+    };
+    const auto task = [this](const auto& chunk) -> ReturnType {
+        auto mesh = gen::MarchingCubes::generateChunk(*chunk->chunk,
+            [this](const gen::Mesh::Vector3Type pos) {
+                return getVoxelFromLoadedChunks(pos);
+            });
+        return { chunk, std::move(mesh) };
+    };
+    const auto groupDone = [iterator] { (*iterator)->state = ChunkData::State::Meshed; };
+    const auto forGroupDone = [storage, this] {
+        for (auto& [chunk, mesh] : *storage) {
+            const auto [x, y, z] = chunk->position.as<gen::Chunk::ValueType>();
+            if (!chunk->geometry) {
+                const auto geometry = std::make_shared<TerrainGeometry>();
+                geometry->setMesh(mesh);
+                geometry->setChunkPosition({ x, y, z });
+                chunk->geometry = geometry;
+                finishGeneration(chunk);
+            } else {
+                chunk->geometry->setMesh(mesh);
+            }
+        }
+    };
+
+    return For(iterator) >> Do {
+        finishAllAndSuccess,
+        parallel,
+        storage,
+        Group {
+            stopOnError,
+            onGroupSetup(groupSetup),
+            If (checkCancelledOrEmpty) >> Then { errorItem },
+            QThreadFunctionTask<ReturnType>(
+                [task, iterator](auto& thread) {
+                    thread.setThreadFunctionData(task, *iterator);
+                },
+                [storage](auto& thread) {
+                    storage->emplace_back(thread.takeResult());
+                }),
+            onGroupDone(groupDone, CallDoneFlag::OnSuccess)
+        },
+        onGroupDone(forGroupDone)
+    };
+}
+
+ExecutableItem ChunkManager::recipe(
+    const QList<ChunkDataPtrType>& renderChunks,
+    const QList<ChunkDataPtrType>& borderChunks)
+{
+    return Group {
+        sequential,
+        generateChunksTask(renderChunks + borderChunks),
+        generateMeshesTask(renderChunks)
+    };
 }
 
 } // app

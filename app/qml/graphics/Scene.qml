@@ -45,33 +45,22 @@ View3D {
         color: "#ffefa1"
     }
 
-    Connections {
-        target: view3d.player
-
-        function onShootingChanged() {
-            if (!view3d.player.shooting) {
-                return
-            }
-            const origin = fpsCamera.scenePosition
-            const direction = fpsCamera.eulerRotation
-
+    Timer {
+        interval: 500
+        running: view3d.player.shooting
+        repeat: true
+        onTriggered: {
             const pick = view3d.pick(view3d.width / 2, view3d.height / 2)
 
-            if (pick.objectHit && pick.distance < 1000.0) {
+            if (pick.objectHit && pick.distance < 100.0) {
                 const worldPos = pick.scenePosition
                 const voxelPos = Qt.vector3d(
                     Math.floor(worldPos.x / ChunkManager.worldScale),
                     Math.floor(worldPos.y / ChunkManager.worldScale),
                     Math.floor(worldPos.z / ChunkManager.worldScale)
                 )
-                const chunkPos = Qt.vector3d(
-                    Math.floor(voxelPos.x / ChunkManager.chunkSize),
-                    Math.floor(voxelPos.y / ChunkManager.chunkSize),
-                    Math.floor(voxelPos.z / ChunkManager.chunkSize)
-                )
 
-                console.log("DESTROYED SMTH XDDD")
-                ChunkManager.destroyVoxel(voxelPos, chunkPos)
+                ChunkManager.setVoxel(voxelPos, false)
             }
         }
     }
@@ -100,13 +89,13 @@ View3D {
     }
 
     Timer {
-        interval: 250
+        interval: 50
         running: true
         repeat: true
         triggeredOnStart: true
         onTriggered: {
             ChunkManager.playerPosition = character.position
-            ChunkManager.update(6)
+            ChunkManager.update(64)
         }
     }
 

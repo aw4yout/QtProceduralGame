@@ -5,9 +5,9 @@ project(ProceduralGame VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Quick3D Quick3DPhysics Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS Quick Quick3D Quick3DPhysics TaskTree)
 
-qt_standard_project_setup(REQUIRES 6.11.1)
+qt_standard_project_setup(REQUIRES 6.12.0)
 
 qt_add_executable(ProceduralGameApplication
     app/src/main.cpp
@@ -68,7 +68,7 @@ target_include_directories(ProceduralGameLib
 
 target_link_libraries(ProceduralGameApplication
     PRIVATE Qt6::Quick Qt6::Quick3D Qt6::Quick3DPhysics
-    Qt6::Concurrent ProceduralGameLib
+    Qt6::TaskTree ProceduralGameLib
 )
 
 # for QML_ELEMENT to work properly
