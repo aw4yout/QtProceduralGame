@@ -39,12 +39,12 @@ public:
     explicit TerrainGenerator(const Config& config);
 
     Chunk generate(Chunk::Vector3Type position) const;
+    Voxel getVoxel(Vector3Type point) const; // make it private in the future
 
 private:
     ValueType getHeight(Vector2Type point) const;
     ValueType getCaveDensity(Vector3Type point) const;
     ValueType getDensity(Vector3Type point) const;
-    Voxel getVoxel(Vector3Type point) const;
     Voxel::Material getMaterial(
         Vector3Type point, ValueType surfaceHeight,
         ValueType baseDensity, ValueType density) const;

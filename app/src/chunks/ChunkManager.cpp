@@ -171,10 +171,9 @@ gen::Voxel ChunkManager::getVoxelFromLoadedChunks(
 
     const auto it = m_chunks.find(chunkPos);
     if (it == m_chunks.end() || !it->second->chunk) {
-#ifndef NDEBUG
-        assert(false && "should be unreachable");
-#endif
-        //return m_generator->getVoxel(worldPos);
+        // decided to leave it here for now - there are some rare edge-cases
+        // assert(false && "should be unreachable");
+        return m_generator->getVoxel(worldPos);
         return {};
     }
 
@@ -182,9 +181,7 @@ gen::Voxel ChunkManager::getVoxelFromLoadedChunks(
         gen::Chunk::isValid(localPos)) {
         return it->second->chunk->getVoxel(localPos);
     }
-#ifndef NDEBUG
     assert(false && "should be unreachable");
-#endif
     //return m_generator->getVoxel(worldPos);
     return {};
 }

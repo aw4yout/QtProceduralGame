@@ -23,6 +23,10 @@ Chunk TerrainGenerator::generate(const Chunk::Vector3Type position) const
 {
     Chunk chunk{ position };
 
+    if (static_cast<float>(position.y) >= m_config.baseHeight + m_config.heightScale * 2) {
+        return chunk; // only air
+    }
+
     for (int z = 0; z < Chunk::size; ++z) {
         for (int y = 0; y < Chunk::size; ++y) {
             for (int x = 0; x < Chunk::size; ++x) {

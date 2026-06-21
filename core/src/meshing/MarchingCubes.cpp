@@ -314,7 +314,7 @@ Mesh MarchingCubes::generateChunk(
     const Chunk& chunk, const ContinuousDensityFuncType& getContinuousVoxel,
     const ValueType isoLevel, const uint8_t step)
 {
-    if (!chunk.isGenerated() || chunk.isOnlyAir() || chunk.isOnlySolid()) {
+    if (!chunk.isGenerated() || chunk.isOnlyAir()) {
         return {};
     }
 
@@ -326,14 +326,23 @@ Mesh MarchingCubes::generateChunk(
     };
 
     Mesh mesh;
+    std::array<Voxel, 8> cubeVoxels{};
+    std::array<Mesh::Vertex, 12> edgeVertices{};
 
     for (uint8_t z = 0; z < Chunk::size; z += step) {
         for (uint8_t y = 0; y < Chunk::size; y += step) {
             for (uint8_t x = 0; x < Chunk::size; x += step) {
+                if (chunk.isOnlySolid()
+                    && x + 1 < Chunk::size
+                    && y + 1 < Chunk::size
+                    && z + 1 < Chunk::size) {
+                    continue;
+                }
+
                 const auto pos = chunk.getPosition();
                 const auto worldPos = pos * Chunk::size + utils::Vector3{ x, y, z };
 
-                std::array<Voxel, 8> cubeVoxels{};
+                cubeVoxels.fill({});
                 for (auto&& [value, offset] : std::views::zip(cubeVoxels, vertexOffset)) {
                     value = getVoxel(worldPos + offset.as<int>() * step);
                 }
@@ -350,7 +359,7 @@ Mesh MarchingCubes::generateChunk(
                     continue;
                 }
 
-                std::array<Mesh::Vertex, 12> edgeVertices{};
+                edgeVertices.fill({});
                 for (uint8_t i{}; i < 12; ++i) {
                     if (flag & (1 << i)) {
                         const auto index1 = edgeConnection[i].x;

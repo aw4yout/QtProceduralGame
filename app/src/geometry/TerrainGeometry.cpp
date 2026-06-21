@@ -45,7 +45,7 @@ void TerrainGeometry::updateData(const gen::Mesh& mesh)
     float maxY = std::numeric_limits<float>::lowest();
     float maxZ = std::numeric_limits<float>::lowest();
 
-    for (const auto& [position, _, $] : mesh.getVertices()) {
+    for (const auto& [position, n, m] : mesh.getVertices()) {
         minX = qMin(minX, position.x); maxX = qMax(maxX, position.x);
         minY = qMin(minY, position.y); maxY = qMax(maxY, position.y);
         minZ = qMin(minZ, position.z); maxZ = qMax(maxZ, position.z);
