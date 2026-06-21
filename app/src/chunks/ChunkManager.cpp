@@ -277,7 +277,13 @@ Group ChunkManager::generateMeshesTask(const QList<ChunkDataPtrType>& chunks)
                 chunk->geometry = geometry;
                 finishGeneration(chunk);
             } else {
+                const auto prevCount = chunk->geometry->vertexCount();
                 chunk->geometry->setMesh(mesh);
+                if (prevCount == 0 && chunk->geometry->vertexCount() > 0) {
+                    m_activeChunks.addChunks({ chunk->geometry.get() });
+                } else if (prevCount > 0 && chunk->geometry->vertexCount() == 0) {
+                    m_activeChunks.removeChunk(chunk->geometry.get());
+                }
             }
         }
     };
